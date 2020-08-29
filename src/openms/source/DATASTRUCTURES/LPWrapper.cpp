@@ -80,9 +80,19 @@ namespace OpenMS
   LPWrapper::~LPWrapper()
   {
 #if COINOR_SOLVER == 1
+    try {
     delete model_;
+    }
+    catch (const std::exception& e) {
+      std::cout << e.what() << std::endl;;
+    }
 #endif
-    glp_delete_prob(lp_problem_);
+    try {
+      glp_delete_prob(lp_problem_);
+    }
+    catch (const std::exception& e) {
+      std::cout << e.what() << std::endl;;
+    }
   }
 
   Int LPWrapper::addRow(const std::vector<Int>& row_indices, const std::vector<double>& row_values, const String& name) // return index
@@ -710,53 +720,58 @@ namespace OpenMS
       model.messageHandler()->setLogLevel(verbose_level > 1 ? 2 : 0);
       model.solver()->messageHandler()->setLogLevel(verbose_level > 1 ? 1 : 0);
 
-      //CglProbing generator1;
-      //generator1.setUsingObjective(true);
-      CglGomory generator2;
-      generator2.setLimit(300);
-      CglKnapsackCover generator3;
-      CglOddHole generator4;
-      generator4.setMinimumViolation(0.005);
-      generator4.setMinimumViolationPer(0.00002);
-      generator4.setMaximumEntries(200);
-      CglClique generator5;
-      generator5.setStarCliqueReport(false);
-      generator5.setRowCliqueReport(false);
-      //CglFlowCover flowGen;
-      CglMixedIntegerRounding mixedGen;
+      try {
+        //CglProbing generator1;
+        //generator1.setUsingObjective(true);
+        CglGomory generator2;
+        generator2.setLimit(300);
+        CglKnapsackCover generator3;
+        CglOddHole generator4;
+        generator4.setMinimumViolation(0.005);
+        generator4.setMinimumViolationPer(0.00002);
+        generator4.setMaximumEntries(200);
+        CglClique generator5;
+        generator5.setStarCliqueReport(false);
+        generator5.setRowCliqueReport(false);
+        //CglFlowCover flowGen;
+        CglMixedIntegerRounding mixedGen;
 
-      // Add in generators (you should prefer the ones used often and disable the others as they increase solution time)
-      //model.addCutGenerator(&generator1,-1,"Probing");
-      model.addCutGenerator(&generator2, -1, "Gomory");
-      model.addCutGenerator(&generator3, -1, "Knapsack");
-      //model.addCutGenerator(&generator4,-1,"OddHole"); // seg faults...
-      model.addCutGenerator(&generator5, -10, "Clique");
-      //model.addCutGenerator(&flowGen,-1,"FlowCover");
-      model.addCutGenerator(&mixedGen, -1, "MixedIntegerRounding");
+        // Add in generators (you should prefer the ones used often and disable the others as they increase solution time)
+        //model.addCutGenerator(&generator1,-1,"Probing");
+        model.addCutGenerator(&generator2, -1, "Gomory");
+        model.addCutGenerator(&generator3, -1, "Knapsack");
+        //model.addCutGenerator(&generator4,-1,"OddHole"); // seg faults...
+        model.addCutGenerator(&generator5, -10, "Clique");
+        //model.addCutGenerator(&flowGen,-1,"FlowCover");
+        model.addCutGenerator(&mixedGen, -1, "MixedIntegerRounding");
 
-      // Heuristics
-      CbcRounding heuristic1(model);
-      model.addHeuristic(&heuristic1);
-      CbcHeuristicLocal heuristic2(model);
-      model.addHeuristic(&heuristic2);
+        // Heuristics
+        CbcRounding heuristic1(model);
+        model.addHeuristic(&heuristic1);
+        CbcHeuristicLocal heuristic2(model);
+        model.addHeuristic(&heuristic2);
 
-      // set maximum allowed CPU time before forced stop (dangerous!)
-      //model.setDblParam(CbcModel::CbcMaximumSeconds,60.0*1);
+        // set maximum allowed CPU time before forced stop (dangerous!)
+        //model.setDblParam(CbcModel::CbcMaximumSeconds,60.0*1);
 
-      // Do initial solve to continuous
-      model.initialSolve();
+        // Do initial solve to continuous
+        model.initialSolve();
 
 
-      // solve
-      model.branchAndBound();
-      // if (verbose_level > 0) OPENMS_LOG_INFO << " Branch and cut took " << CoinCpuTime()-time1 << " seconds, "
-      //                                        << model.getNodeCount()<<" nodes with objective "
-      //                                        << model.getObjValue()
-      //                                        << (!model.status() ? " Finished" : " Not finished")
-      //                                        << std::endl;
-      for (Int i = 0; i < model_->numberColumns(); ++i)
-      {
-        solution_.push_back(model.solver()->getColSolution()[i]);
+        // solve
+        model.branchAndBound();
+        // if (verbose_level > 0) OPENMS_LOG_INFO << " Branch and cut took " << CoinCpuTime()-time1 << " seconds, "
+        //                                        << model.getNodeCount()<<" nodes with objective "
+        //                                        << model.getObjValue()
+        //                                        << (!model.status() ? " Finished" : " Not finished")
+        //                                        << std::endl;
+        for (Int i = 0; i < model_->numberColumns(); ++i)
+        {
+          solution_.push_back(model.solver()->getColSolution()[i]);
+        }
+      }
+      catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;;
       }
       OPENMS_LOG_INFO << (model.isProvenOptimal() ? "Optimal solution found!" : "No solution found!") << "\n";
       return model.status();

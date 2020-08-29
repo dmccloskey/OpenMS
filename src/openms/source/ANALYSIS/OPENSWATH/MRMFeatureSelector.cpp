@@ -240,7 +240,12 @@ namespace OpenMS
       ++n_constraints;
     }
     LPWrapper::SolverParam param;
-    problem.solve(param);
+    try {
+      problem.solve(param);
+    }
+    catch (const std::exception& e) {
+      std::cout << e.what() << std::endl;;
+    }
     for (Int c = 0; c < problem.getNumberOfColumns(); ++c)
     {
       const String name = problem.getColumnName(c);
